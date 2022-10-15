@@ -1,6 +1,8 @@
 import csv
-import sys
-import itertools
+import time
+import os
+# import sys
+# import itertools
 
 
 def read_test_data(file_path):
@@ -23,8 +25,9 @@ def read_ini(ini_path):
     return things
 
 
-def write_output():
-    pass
+def write_output(file_name, new_element):
+    with open(file_name, mode='a') as file:
+        file.write(new_element)
 
 
 def tsp_brute_force():
@@ -33,17 +36,30 @@ def tsp_brute_force():
 
 def main(ini_path):
     graphs_to_check = read_ini(ini_path)
-    output_file_path = graphs_to_check.pop()
+    output_file_path = graphs_to_check.pop()[0]
+
+    # remove output file if already exist
+    if os.path.exists(output_file_path):
+        os.remove(output_file_path)
+
     for graph in graphs_to_check:
+        output = ""
+        for i in range(len(graph)):
+            output += graph[i] + " "
+
         graph_path = graph[0]
         iterations = int(graph[1])
+
         for i in range(iterations):
-            print(i)
-    # print(graphs_to_check)
-    # print(output_file_path)
+            start_time = time.time()
+            end_time = time.time()
+            output += "\n" + str(end_time - start_time)
+            pass
+
+        output += "\n"
+        write_output(r"Output\output.csv", output)
 
 
 ini = ".ini"
 
-# main(ini)
-print(read_test_data(r"Test_data\tsp_6_1.txt"))
+main(ini)

@@ -54,7 +54,7 @@ def write_output(file_path, new_element):
 
 def path_to_string(path):
     """
-    Takses list and returns it as a string in expected format
+    Takes list and returns it as a string in expected format
     :param path: list with vertexes of path
     :type path: list
     :return: string with square brackets and vertexes

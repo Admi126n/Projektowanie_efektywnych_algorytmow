@@ -1,11 +1,18 @@
 import csv
+import itertools
+import sys
 import time
 import os
-# import sys
-# import itertools
 
 
 def read_test_data(file_path):
+    """
+    Reads test data file, converts it from string to int and returns it as a list
+    :param file_path: path to test data
+    :type file_path: string
+    :return: test data as two-dimensional list
+    :rtype: list
+    """
     with open(file_path) as file:
         things = csv.reader(file, delimiter=' ')
         next(things)
@@ -18,6 +25,13 @@ def read_test_data(file_path):
 
 
 def read_ini(ini_path):
+    """
+    Reads given .ini file and returns it as a list
+    :param ini_path: path to .ini file
+    :type ini_path: string
+    :return: .ini file as a list
+    :rtype: list
+    """
     with open(ini_path) as file:
         things = csv.reader(file, delimiter=' ')
         next(things)
@@ -25,36 +39,78 @@ def read_ini(ini_path):
     return things
 
 
-def write_output(file_name, new_element):
-    with open(file_name, mode='a') as file:
+def write_output(file_path, new_element):
+    """
+    Writes results to given file
+    :param file_path: path to output file
+    :type file_path: string
+    :param new_element: output to write
+    :type new_element: string
+    :return: None
+    """
+    with open(file_path, mode='a') as file:
         file.write(new_element)
 
 
-def tsp_brute_force():
-    pass
+def tsp_brute_force(graph):
+    """
+    Reads two-dimensional list with graph, calculates minimal travel cost and optimal path
+    :param graph: two-dimensional list with graph
+    :type graph: list
+    :return: tuple with minimal cost and optimal path
+    :rtype: tuple[int | list]
+    """
+    optimal_path = []
+    vertex = []
+    for i in range(1, len(graph)):
+        vertex.append(i)
+
+    min_cost = sys.maxsize
+    permutations = itertools.permutations(vertex)
+
+    for permutation in permutations:
+        curr_cost = 0
+        k = 0
+        for point in permutation:
+            curr_cost += graph[k][point]
+            k = point
+        curr_cost += graph[k][0]
+        min_cost = min(min_cost, curr_cost)
+        if min_cost == curr_cost:
+            optimal_path = permutation
+
+    return min_cost, optimal_path
 
 
 def main(ini_path):
-    graphs_to_check = read_ini(ini_path)
-    output_file_path = graphs_to_check.pop()[0]
+    """
+    Calls functions all needed functions to solve tsp problem
+    :param ini_path: path to .ini file
+    :type ini_path: string
+    :return: None
+    """
+    graphs_to_check = read_ini(ini_path)  # load data from .ini
+    output_file_path = graphs_to_check.pop()[0]  # pop last value from ini
 
     # remove output file if already exist
     if os.path.exists(output_file_path):
         os.remove(output_file_path)
 
     for graph in graphs_to_check:
+        print(f"Graph {graph} in progress...")
         output = ""
         for i in range(len(graph)):
             output += graph[i] + " "
 
-        graph_path = graph[0]
+        graph_file_path = graph[0]
         iterations = int(graph[1])
+        graph_file = read_test_data(os.path.join("Test_data", graph_file_path))
 
         for i in range(iterations):
             start_time = time.time()
+            tsp_brute_force(graph_file)
             end_time = time.time()
             output += "\n" + str(end_time - start_time)
-            pass
 
         output += "\n"
         write_output(r"Output\output.csv", output)

@@ -52,6 +52,22 @@ def write_output(file_path, new_element):
         file.write(new_element)
 
 
+def path_to_string(path):
+    """
+    Takses list and returns it as a string in expected format
+    :param path: list with vertexes of path
+    :type path: list
+    :return: string with square brackets and vertexes
+    :rtype: string
+    """
+    output = "["
+    for el in path:
+        output += f"{el} "
+    output = output[0:-1]
+    output += "]"
+    return output
+
+
 def tsp_brute_force(graph):
     """
     Reads two-dimensional list with graph, calculates minimal travel cost and optimal path
@@ -108,9 +124,10 @@ def main(ini_path):
 
         for i in range(iterations):
             start_time = time.time()
-            tsp_brute_force(graph_file)
+            cost, path = tsp_brute_force(graph_file)
             end_time = time.time()
-            output += "\n" + str(end_time - start_time)
+            path = path_to_string(path)
+            output += f"\n{str(end_time - start_time)} {str(cost)} {str(path)}"
 
         output += "\n"
         write_output(r"Output\output.csv", output)

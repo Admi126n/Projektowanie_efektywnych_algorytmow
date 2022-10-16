@@ -60,11 +60,11 @@ def path_to_string(path):
     :return: string with square brackets and vertexes
     :rtype: string
     """
-    output = "["
+    output = "[0 "
     for el in path:
         output += f"{el} "
     output = output[0:-1]
-    output += "]"
+    output += " 0]"
     return output
 
 

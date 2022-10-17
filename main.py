@@ -121,6 +121,8 @@ def main(ini_path):
         graph_file_path = graph[0]
         iterations = int(graph[1])
         graph_file = read_test_data(os.path.join("Test_data", graph_file_path))
+        cost = 0
+        path = []
 
         start_time = time.time()
         for i in range(iterations):
@@ -128,7 +130,7 @@ def main(ini_path):
             path = path_to_string(path)
             print(f"\tGraph {graph[0]} iteration {i + 1}/{iterations} done")
         end_time = time.time()
-        output += f"\n{str((end_time - start_time) / iterations)} {str(cost)} {str(path)} {iterations}"
+        output += f"\n{str((end_time - start_time) / iterations)} {str(cost)} {str(path)}"
 
         output += "\n"
         write_output(r"Output\output.csv", output)

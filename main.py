@@ -113,7 +113,7 @@ def main(ini_path):
         os.remove(output_file_path)
 
     for graph in graphs_to_check:
-        print(f"Graph {graph} in progress...")
+        print(f"Graph {graph[0]} in progress...")
         output = ""
         for i in range(len(graph)):
             output += graph[i] + " "
@@ -122,12 +122,13 @@ def main(ini_path):
         iterations = int(graph[1])
         graph_file = read_test_data(os.path.join("Test_data", graph_file_path))
 
+        start_time = time.time()
         for i in range(iterations):
-            start_time = time.time()
             cost, path = tsp_brute_force(graph_file)
-            end_time = time.time()
             path = path_to_string(path)
-            output += f"\n{str(end_time - start_time)} {str(cost)} {str(path)}"
+            print(f"\tGraph {graph[0]} iteration {i + 1}/{iterations} done")
+        end_time = time.time()
+        output += f"\n{str((end_time - start_time) / iterations)} {str(cost)} {str(path)} {iterations}"
 
         output += "\n"
         write_output(r"Output\output.csv", output)

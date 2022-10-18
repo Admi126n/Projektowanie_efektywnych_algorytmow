@@ -52,6 +52,14 @@ def write_output(file_path, new_element):
         file.write(new_element)
 
 
+def clear_output(output_path):
+    # TODO add docstring
+    if not os.path.exists(output_path.split("\\")[0]):
+        os.mkdir(output_path.split("\\")[0])
+    elif os.path.exists(output_path):
+        os.remove(output_path)
+
+
 def path_to_string(path):
     """
     Takes list and returns it as a string in expected format
@@ -108,9 +116,7 @@ def main(ini_path):
     graphs_to_check = read_ini(ini_path)  # load data from .ini
     output_file_path = graphs_to_check.pop()[0]  # pop last value from ini
 
-    # remove output file if already exist
-    if os.path.exists(output_file_path):
-        os.remove(output_file_path)
+    clear_output(output_file_path)
 
     for graph in graphs_to_check:
         print(f"Graph {graph[0]} in progress...")

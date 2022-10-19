@@ -85,9 +85,7 @@ def tsp_brute_force(graph):
     :rtype: tuple[int | list]
     """
     optimal_path = []
-    vertex = []
-    for i in range(1, len(graph)):
-        vertex.append(i)
+    vertex = [*range(1, len(graph))]
 
     min_cost = sys.maxsize
     permutations = itertools.permutations(vertex)

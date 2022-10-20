@@ -53,7 +53,13 @@ def write_output(file_path, new_element):
 
 
 def clear_output(output_path):
-    # TODO add docstring
+    """
+    Creates output directory if not present and removes output file
+    if already present
+    :param output_path: path to output file
+    :rtype output_path: string
+    :return: None
+    """
     if not os.path.exists(output_path.split("\\")[0]):
         os.mkdir(output_path.split("\\")[0])
     elif os.path.exists(output_path):

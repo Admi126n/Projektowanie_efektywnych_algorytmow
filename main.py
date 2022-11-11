@@ -1,6 +1,11 @@
 import csv
 import itertools
+import os
+import sys
 import random
+import datetime
+import numpy as np
+from itertools import combinations
 
 
 def read_test_data(file_path):
@@ -20,8 +25,6 @@ def read_test_data(file_path):
         for j in range(len(things[i])):
             things[i][j] = int(things[i][j])
     return things
-
-
 
 
 def held_karp(dists):
@@ -74,8 +77,8 @@ def held_karp(dists):
     opt, parent = min(res)
 
     # Backtrack to find full path
-    path = []
-    for i in range(n - 1):
+    path = [0]
+    for _ in range(n - 1):
         path.append(parent)
         new_bits = bits & ~(1 << parent)
         _, parent = C[(bits, parent)]
@@ -87,28 +90,71 @@ def held_karp(dists):
     return opt, list(reversed(path))
 
 
-def generate_distances(n):
-    dists = [[0] * n for i in range(n)]
-    for i in range(n):
-        for j in range(i+1, n):
-            dists[i][j] = dists[j][i] = random.randint(1, 99)
+def tutorial(mask, pos, level):
+    global visited_all
+    global test_graph
+    global dp
+    global path
+    global ans
 
-    return dists
+    if mask == visited_all:
+        return test_graph[pos][0]
+
+    if dp[mask][pos] != -1:
+        return dp[mask][pos]
+
+    for city in range(len(test_graph)):
+        if mask & (1 << city) == 0:
+            new_ans = test_graph[pos][city] + tutorial(mask | (1 << city), city, level + 1)
+            ans = min(ans, new_ans)
+
+    dp[mask][pos] = ans
+    return ans
 
 
-def read_distances(filename):
-    dists = []
-    with open(filename, 'rb') as f:
-        for line in f:
-            # Skip comments
-            if line[0] == '#':
-                continue
+test_graph = read_test_data(r"Test_data/tsp_6_2.txt")
 
-            dists.append(map(int, map(str.strip, line.split(','))))
+# ans = sys.maxsize
+# path = []
+# for _ in range(len(test_graph) + 1):
+#     path.append(None)
+# path[0] = 0
+# path[-1] = 0
+#
+# level_global = 0
+#
+# # ustawienie maski na 1111 na wszystkich bitach
+# visited_all = (1 << len(test_graph)) - 1
+#
+# dp = []
+# for i in range(1 << len(test_graph)):
+#     dp.append([])
+#     for j in range(len(test_graph)):
+#         dp[i].append(-1)
+#
+# start = datetime.datetime.now()
+# print(tutorial(1, 0, level_global))
+# end = datetime.datetime.now()
+# print((end - start).microseconds, "ms")
+# print(path)
 
-    return dists
 
+# print(visited_all)
 
-if __name__ == '__main__':
-    dists = read_test_data(r"Test_data/tsp_17.txt")
-    print(held_karp(dists))
+# for el in os.listdir("Test_data"):
+#     print(el)
+#     graph = read_test_data(os.path.join("Test_data", el))
+#     start = datetime.datetime.now()
+#     ans = held_karp(graph)
+#     end = datetime.datetime.now()
+#     print(str(ans), "%.10f" % (end - start).microseconds)
+
+# graph = read_test_data(r"Test_data/tsp_12.txt")
+# start = datetime.datetime.now()
+# ans = held_karp(graph)
+# end = datetime.datetime.now()
+# print(str(ans), "%.10f" % (end - start).microseconds)
+
+# x = read_test_data(r"Test_data/tsp_17_2.txt")
+# for el in x:
+#     print(len(el))

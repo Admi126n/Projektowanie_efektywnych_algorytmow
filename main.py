@@ -1,11 +1,6 @@
 import csv
 import itertools
-import os
-import sys
-import random
 import datetime
-import numpy as np
-from itertools import combinations
 
 
 def read_test_data(file_path):
@@ -27,36 +22,29 @@ def read_test_data(file_path):
     return things
 
 
-def held_karp(dists):
-    """
-    Implementation of Held-Karp, an algorithm that solves the Traveling
-    Salesman Problem using dynamic programming with memoization.
-    Parameters:
-        dists: distance matrix
-    Returns:
-        A tuple, (cost, path).
-    """
-    n = len(dists)
+def held_karp(graph):
+    graph_len = len(graph)
 
-    # Maps each subset of the nodes to the cost to reach that subset, as well
-    # as what node it passed before reaching this subset.
-    # Node subsets are represented as set bits.
-    C = {}
+    # słownik (maska bitowa,wierzchołek):(koszt dotarcia:poprzednik)
+    cost_dict = {}
 
-    # Set transition cost from initial state
-    for k in range(1, n):
-        C[(1 << k, k)] = (dists[0][k], 0)
+    # cost_dict[(maska_bitowa_dla_k, k)] = (koszt 0 -> k, previus (czyli 0))
+    # sąsiedzi wierzchołka początkowego z kosztami dotarcia
+    for k in range(1, graph_len):
+        cost_dict.update({(1 << k, k): (graph[0][k], 0)})
 
     # Iterate subsets of increasing length and store intermediate results
     # in classic dynamic programming manner
-    for subset_size in range(2, n):
-        for subset in itertools.combinations(range(1, n), subset_size):
-            # Set bits for all nodes in this subset
+    for subset_size in range(2, graph_len):
+        for subset in itertools.combinations(range(1, graph_len), subset_size):
             bits = 0
-            for bit in subset:
-                bits |= 1 << bit
+
+            # utworzenie maski bitowej dla aktualnej podsieci
+            for node in subset:
+                bits |= 1 << node
 
             # Find the lowest cost to get to this subset
+            # uzyskanie maski bitowej poprzednika
             for k in subset:
                 prev = bits & ~(1 << k)
 
@@ -64,97 +52,37 @@ def held_karp(dists):
                 for m in subset:
                     if m == 0 or m == k:
                         continue
-                    res.append((C[(prev, m)][0] + dists[m][k], m))
-                C[(bits, k)] = min(res)
+                    res.append((cost_dict.get((prev, m))[0] + graph[m][k], m))
+                cost_dict.update({(bits, k): min(res)})
 
-    # We're interested in all bits but the least significant (the start state)
-    bits = (2**n - 1) - 1
+    # maska bitowa odwiedzonych wszystkich w poza poczatkowym
+    bits = (2**graph_len - 1) - 1
 
-    # Calculate optimal cost
     res = []
-    for k in range(1, n):
-        res.append((C[(bits, k)][0] + dists[k][0], k))
+    # utworzenie listy kosztów dotarcia do w poczatkowego dla wszyskich odwiedzonych wierzcholkow
+    for k in range(1, graph_len):
+        res.append((cost_dict.get((bits, k))[0] + graph[k][0], k))
+    # wybór optymalnego
     opt, parent = min(res)
 
-    # Backtrack to find full path
+    # tablica ze sciezka konczaca sie wierzcholkiem poczatkowym
     path = [0]
-    for _ in range(n - 1):
+    # backtracking po słowniku
+    for _ in range(graph_len - 1):
         path.append(parent)
         new_bits = bits & ~(1 << parent)
-        _, parent = C[(bits, parent)]
+        _, parent = cost_dict.get((bits, parent))
         bits = new_bits
 
-    # Add implicit start state
+    # dodanie wierzcholka poczatkowego
     path.append(0)
 
     return opt, list(reversed(path))
 
 
-def tutorial(mask, pos, level):
-    global visited_all
-    global test_graph
-    global dp
-    global path
-    global ans
+test_graph = read_test_data(r"Test_data/tsp_4.txt")
+start = datetime.datetime.now()
+print(held_karp(test_graph))
+end = datetime.datetime.now()
 
-    if mask == visited_all:
-        return test_graph[pos][0]
-
-    if dp[mask][pos] != -1:
-        return dp[mask][pos]
-
-    for city in range(len(test_graph)):
-        if mask & (1 << city) == 0:
-            new_ans = test_graph[pos][city] + tutorial(mask | (1 << city), city, level + 1)
-            ans = min(ans, new_ans)
-
-    dp[mask][pos] = ans
-    return ans
-
-
-test_graph = read_test_data(r"Test_data/tsp_6_2.txt")
-
-# ans = sys.maxsize
-# path = []
-# for _ in range(len(test_graph) + 1):
-#     path.append(None)
-# path[0] = 0
-# path[-1] = 0
-#
-# level_global = 0
-#
-# # ustawienie maski na 1111 na wszystkich bitach
-# visited_all = (1 << len(test_graph)) - 1
-#
-# dp = []
-# for i in range(1 << len(test_graph)):
-#     dp.append([])
-#     for j in range(len(test_graph)):
-#         dp[i].append(-1)
-#
-# start = datetime.datetime.now()
-# print(tutorial(1, 0, level_global))
-# end = datetime.datetime.now()
-# print((end - start).microseconds, "ms")
-# print(path)
-
-
-# print(visited_all)
-
-# for el in os.listdir("Test_data"):
-#     print(el)
-#     graph = read_test_data(os.path.join("Test_data", el))
-#     start = datetime.datetime.now()
-#     ans = held_karp(graph)
-#     end = datetime.datetime.now()
-#     print(str(ans), "%.10f" % (end - start).microseconds)
-
-# graph = read_test_data(r"Test_data/tsp_12.txt")
-# start = datetime.datetime.now()
-# ans = held_karp(graph)
-# end = datetime.datetime.now()
-# print(str(ans), "%.10f" % (end - start).microseconds)
-
-# x = read_test_data(r"Test_data/tsp_17_2.txt")
-# for el in x:
-#     print(len(el))
+print((end - start).microseconds)

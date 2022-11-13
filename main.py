@@ -171,5 +171,4 @@ if __name__ == "__main__":
     # start = datetime.datetime.now()
     # print(held_karp(test_graph))
     # end = datetime.datetime.now()
-
     # print((end - start).microseconds)

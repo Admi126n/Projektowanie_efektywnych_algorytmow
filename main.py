@@ -177,7 +177,7 @@ def main(ini):
         t_0 = int(graph[-3])
         cooling_rate = float(graph[-2])
         eras = int(graph[-1])
-
+        # algorithm
         # graph_file = np.array(read_test_data(os.path.join("Test_data", graph_name)))
         graph_file = read_test_data(os.path.join("Test_data", graph_name))
 

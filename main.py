@@ -1,6 +1,7 @@
 import csv
 import datetime
 import os
+import random
 
 
 def read_test_data(file_path):
@@ -81,6 +82,51 @@ def path_to_string(path):
     return output
 
 
+def get_random_initial(graph):
+    """
+    Gets initial solution by random choosing vertexes
+    :return:
+    """
+    cost = 0
+    path = [0]
+    vertex = 0
+    k = 0
+    to_visit = [*range(1, len(graph))]
+    for _ in range(len(graph) - 1):
+        vertex = random.choice(to_visit)
+        cost += graph[k][vertex]
+        path.append(vertex)
+        to_visit.remove(vertex)
+        k = vertex
+    cost += graph[vertex][0]
+    path.append(0)
+    return cost, path
+
+
+def get_greedy_initial(graph):
+    """
+    Gets initial solution by greedy choosing vertexes
+    :return:
+    """
+    cost = 0
+    path = [0]
+    vertex = 0
+    k = 0
+    to_visit = [*range(1, len(graph))]
+    for _ in range(len(graph) - 1):
+        vertex = to_visit[0]
+        for el in to_visit:
+            if graph[k][vertex] > graph[k][el]:
+                vertex = el
+        cost += graph[k][vertex]
+        path.append(vertex)
+        to_visit.remove(vertex)
+        k = vertex
+    cost += graph[vertex][0]
+    path.append(0)
+    return cost, path
+
+
 def simulated_annealing(graph, start_temp, era_len):
     optimal_cost = 23
     optimal_path = []
@@ -121,5 +167,14 @@ def main(ini):
 
 
 if __name__ == "__main__":
-    ini_file_path = ".ini"
-    main(ini_file_path)
+    # ini_file_path = ".ini"
+    # main(ini_file_path)
+
+    name = r"tsp_10.txt"
+    g_file = read_test_data(os.path.join("Test_data", name))
+
+    for _ in range(10000):
+        c1, p1 = get_greedy_initial(g_file)
+        c2, p2 = get_random_initial(g_file)
+        if c1 > c2:
+            print("random is better")

@@ -1,5 +1,6 @@
 import csv
 import datetime
+import math
 import os
 import random
 
@@ -127,11 +128,42 @@ def get_greedy_initial(graph):
     return cost, path
 
 
-def simulated_annealing(graph, start_temp, era_len):
-    optimal_cost = 23
-    optimal_path = []
+def calculate_distance(solution, graph):
+    dist = 0
+    for i in range(len(solution)):
+        if i != len(solution) - 1:
+            # dist += graph[solution[i], solution[i + 1]]
+            dist += graph[solution[i]][solution[i + 1]]
+        else:
+            # dist += graph[solution[i], solution[0]]
+            dist += graph[solution[i]][solution[0]]
+    return dist
 
-    return optimal_cost, optimal_path
+
+def switch_neighbour(solution):
+    neighbour = solution[:]
+    x, y = random.sample(range(len(neighbour)), 2)
+    neighbour[x], neighbour[y] = neighbour[y], neighbour[x]
+    return neighbour
+
+
+def simulated_annealing(temp, cooling_rate, iterations, graph):
+    random_solution_distance, solution = get_random_initial(graph)
+    best_solution = solution[:]
+    for i in range(iterations):
+        new_solution = switch_neighbour(solution)
+
+        best_distance = calculate_distance(best_solution, graph)
+
+        delta = calculate_distance(new_solution, graph) - random_solution_distance
+
+        # If solution is worse or probability is very high
+        if delta < 0 or random.random() < math.exp(-delta / temp):
+            solution = new_solution[:]
+        if random_solution_distance < best_distance:
+            best_solution = solution[:]
+        temp *= (1 - cooling_rate)
+    return calculate_distance(best_solution, graph), best_solution
 
 
 def main(ini):
@@ -142,9 +174,11 @@ def main(ini):
         graph_name = graph[0]
         repetitions = int(graph[1])
         optimal_cost = int(graph[2])
-        t_0 = int(graph[4])
-        era_length = int(graph[5])
+        t_0 = int(graph[-3])
+        cooling_rate = float(graph[-2])
+        eras = int(graph[-1])
 
+        # graph_file = np.array(read_test_data(os.path.join("Test_data", graph_name)))
         graph_file = read_test_data(os.path.join("Test_data", graph_name))
 
         output_message = graph_name
@@ -152,7 +186,7 @@ def main(ini):
 
         for _ in range(repetitions):
             start_time = datetime.datetime.now()
-            calculated_cost, optimal_path = simulated_annealing(graph_file, t_0, era_length)
+            calculated_cost, optimal_path = simulated_annealing(t_0, cooling_rate, eras, graph_file)
             end_time = datetime.datetime.now()
 
             execution_time = (end_time - start_time).microseconds
@@ -167,14 +201,5 @@ def main(ini):
 
 
 if __name__ == "__main__":
-    # ini_file_path = ".ini"
-    # main(ini_file_path)
-
-    name = r"tsp_10.txt"
-    g_file = read_test_data(os.path.join("Test_data", name))
-
-    for _ in range(10000):
-        c1, p1 = get_greedy_initial(g_file)
-        c2, p2 = get_random_initial(g_file)
-        if c1 > c2:
-            print("random is better")
+    ini_file_path = ".ini"
+    main(ini_file_path)

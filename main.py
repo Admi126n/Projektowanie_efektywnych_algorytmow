@@ -132,10 +132,8 @@ def calculate_distance(solution, graph):
     dist = 0
     for i in range(len(solution)):
         if i != len(solution) - 1:
-            # dist += graph[solution[i], solution[i + 1]]
             dist += graph[solution[i]][solution[i + 1]]
         else:
-            # dist += graph[solution[i], solution[0]]
             dist += graph[solution[i]][solution[0]]
     return dist
 
@@ -147,8 +145,22 @@ def switch_neighbour(solution):
     return neighbour
 
 
+def log_cooling(temp, a, b, iteration):
+    # return temp / (a + b * math.log10(iteration))
+    return temp / (a + b * math.log(iteration))
+
+
+def linear_cooling(temp, a, b, iteration):
+    return temp / (a + b * iteration)
+
+
+def geometrical_cooling(temp, a, iteration):
+    return (a**iteration) * temp
+
+
 def simulated_annealing(temp, cooling_rate, iterations, graph):
     random_solution_distance, solution = get_random_initial(graph)
+    # random_solution_distance, solution = get_greedy_initial(graph)
     best_solution = solution[:]
     for i in range(iterations):
         new_solution = switch_neighbour(solution)
@@ -157,12 +169,17 @@ def simulated_annealing(temp, cooling_rate, iterations, graph):
 
         delta = calculate_distance(new_solution, graph) - random_solution_distance
 
-        # If solution is worse or probability is very high
         if delta < 0 or random.random() < math.exp(-delta / temp):
             solution = new_solution[:]
         if random_solution_distance < best_distance:
             best_solution = solution[:]
-        temp *= (1 - cooling_rate)
+
+        # temp = geometrical_cooling(temp, 1 - cooling_rate, i + 1)
+        # temp = log_cooling(temp, 1 - cooling_rate, 1 - cooling_rate, i + 1)
+        temp = linear_cooling(temp, 1 - cooling_rate, 1 - cooling_rate, i + 1)
+
+        if temp == 0:
+            return calculate_distance(best_solution, graph), best_solution
     return calculate_distance(best_solution, graph), best_solution
 
 
@@ -171,14 +188,15 @@ def main(ini):
     clear_output(output)
 
     for graph in graphs_to_check:
+        mean_time = 0
+        mean_cost = 0
+        mean_percent = 0
         graph_name = graph[0]
         repetitions = int(graph[1])
         optimal_cost = int(graph[2])
         t_0 = int(graph[-3])
         cooling_rate = float(graph[-2])
         eras = int(graph[-1])
-        # algorithm
-        # graph_file = np.array(read_test_data(os.path.join("Test_data", graph_name)))
         graph_file = read_test_data(os.path.join("Test_data", graph_name))
 
         output_message = graph_name
@@ -192,11 +210,20 @@ def main(ini):
             execution_time = (end_time - start_time).microseconds
             cost_ratio = round((calculated_cost / optimal_cost) * 100, 2)
 
-            assert cost_ratio >= 100, "Calculated cost better than optimal cost!"
+            assert cost_ratio >= 100, f"Calculated cost better than optimal cost! ({calculated_cost} < {optimal_cost})"
 
-            output_message += f"\n{execution_time} {calculated_cost} ({cost_ratio} %) {optimal_path}"
+            output_message += f"\n{execution_time} {calculated_cost} ({cost_ratio} %) {path_to_string(optimal_path)}"
+
+            mean_cost += calculated_cost
+            mean_percent += cost_ratio
+            mean_time += execution_time
 
         output_message += "\n"
+        write_output(output, output_message)
+
+        output_message = f"Mean cost: {round(mean_cost / repetitions, 2)}, " \
+                         f"mean ratio: {round(mean_percent / repetitions, 2)}%, " \
+                         f"mean execution time: {round(mean_time / repetitions, 2)} us\n"
         write_output(output, output_message)
 
 

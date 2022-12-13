@@ -3,6 +3,7 @@ import datetime
 import math
 import os
 import random
+import warnings
 
 
 def read_test_data(file_path):
@@ -146,7 +147,6 @@ def switch_neighbour(solution):
 
 
 def log_cooling(temp, a, b, iteration):
-    # return temp / (a + b * math.log10(iteration))
     return temp / (a + b * math.log(iteration))
 
 
@@ -154,36 +154,39 @@ def linear_cooling(temp, a, b, iteration):
     return temp / (a + b * iteration)
 
 
-def geometrical_cooling(temp, a, iteration):
+def geometrical_cooling(temp, a, b, iteration):
     return (a**iteration) * temp
 
 
-def simulated_annealing(temp, cooling_rate, iterations, graph):
-    random_solution_distance, solution = get_random_initial(graph)
-    # random_solution_distance, solution = get_greedy_initial(graph)
+def simulated_annealing(temp, cooling_rate, iterations, graph, get_initial, cooling_alg):
+    first_solution_distance, solution = get_initial(graph)
+
     best_solution = solution[:]
     for i in range(iterations):
         new_solution = switch_neighbour(solution)
+        new_solution_dist = calculate_distance(new_solution, graph)
 
-        best_distance = calculate_distance(best_solution, graph)
+        best_solution_distance = calculate_distance(best_solution, graph)
 
-        delta = calculate_distance(new_solution, graph) - random_solution_distance
+        # delta = new_solution_dist - first_solution_distance
+        delta = new_solution_dist - best_solution_distance
 
         if delta < 0 or random.random() < math.exp(-delta / temp):
             solution = new_solution[:]
-        if random_solution_distance < best_distance:
             best_solution = solution[:]
+        # if first_solution_distance < best_solution_distance:
+        #     best_solution = solution[:]
 
-        # temp = geometrical_cooling(temp, 1 - cooling_rate, i + 1)
-        # temp = log_cooling(temp, 1 - cooling_rate, 1 - cooling_rate, i + 1)
-        temp = linear_cooling(temp, 1 - cooling_rate, 1 - cooling_rate, i + 1)
+        temp = cooling_alg(temp, 1 - cooling_rate, 1 - cooling_rate, i + 1)
 
         if temp == 0:
+            # print(i)
             return calculate_distance(best_solution, graph), best_solution
+    # print(i)
     return calculate_distance(best_solution, graph), best_solution
 
 
-def main(ini):
+def main(ini, initial_type, cooling_algorithm):
     graphs_to_check, output = read_ini(ini)
     clear_output(output)
 
@@ -204,13 +207,16 @@ def main(ini):
 
         for _ in range(repetitions):
             start_time = datetime.datetime.now()
-            calculated_cost, optimal_path = simulated_annealing(t_0, cooling_rate, eras, graph_file)
+            calculated_cost, optimal_path = simulated_annealing(t_0, cooling_rate, eras,
+                                                                graph_file, initial_type, cooling_algorithm)
             end_time = datetime.datetime.now()
 
             execution_time = (end_time - start_time).microseconds
             cost_ratio = round((calculated_cost / optimal_cost) * 100, 2)
 
-            assert cost_ratio >= 100, f"Calculated cost better than optimal cost! ({calculated_cost} < {optimal_cost})"
+            # assert cost_ratio >= 100, f"Calculated cost better than optimal cost! ({calculated_cost} < {optimal_cost})"
+            if cost_ratio < 100:
+                warnings.warn(f"Calculated cost better than optimal cost! ({calculated_cost} < {optimal_cost})")
 
             output_message += f"\n{execution_time} {calculated_cost} ({cost_ratio} %) {path_to_string(optimal_path)}"
 
@@ -229,4 +235,4 @@ def main(ini):
 
 if __name__ == "__main__":
     ini_file_path = ".ini"
-    main(ini_file_path)
+    main(ini_file_path, get_greedy_initial, linear_cooling)

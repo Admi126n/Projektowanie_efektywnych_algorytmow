@@ -131,58 +131,54 @@ def get_greedy_initial(graph):
 
 def calculate_distance(solution, graph):
     dist = 0
-    for i in range(len(solution)):
-        if i != len(solution) - 1:
-            dist += graph[solution[i]][solution[i + 1]]
-        else:
-            dist += graph[solution[i]][solution[0]]
+    for i in range(len(solution) - 1):
+        dist += graph[solution[i]][solution[i + 1]]
+    dist += graph[solution[len(solution) - 1]][solution[0]]
     return dist
 
 
-def switch_neighbour(solution):
+def switch_neighbour(solution, graph):
     neighbour = solution[:]
     x, y = random.sample(range(len(neighbour)), 2)
     neighbour[x], neighbour[y] = neighbour[y], neighbour[x]
-    return neighbour
+    neighbour_distance = calculate_distance(neighbour, graph)
+    return neighbour_distance, neighbour
 
 
-def log_cooling(temp, a, b, iteration):
-    return temp / (a + b * math.log(iteration))
+def log_cooling(temp, alpha, iteration):
+    return temp / (1 + math.log(1 + iteration))
 
 
-def linear_cooling(temp, a, b, iteration):
-    return temp / (a + b * iteration)
+def geometrical_cooling(temp, alpha, iteration):
+    return (alpha**iteration) * temp
 
 
-def geometrical_cooling(temp, a, b, iteration):
-    return (a**iteration) * temp
-
-
-def simulated_annealing(temp, cooling_rate, iterations, graph, get_initial, cooling_alg):
-    first_solution_distance, solution = get_initial(graph)
+def simulated_annealing(temp, cooling_rate, ela_len, graph, get_initial, cooling_alg):
+    cost, solution = get_initial(graph)
 
     best_solution = solution[:]
-    for i in range(iterations):
-        new_solution = switch_neighbour(solution)
-        new_solution_dist = calculate_distance(new_solution, graph)
+    best_cost = cost
+    current_heat = temp
 
-        best_solution_distance = calculate_distance(best_solution, graph)
+    epoch = 0
 
-        # delta = new_solution_dist - first_solution_distance
-        delta = new_solution_dist - best_solution_distance
+    while current_heat > 1:
+        epoch += 1
 
-        if delta < 0 or random.random() < math.exp(-delta / temp):
-            solution = new_solution[:]
-            best_solution = solution[:]
-        # if first_solution_distance < best_solution_distance:
-        #     best_solution = solution[:]
+        for i in range(ela_len):
+            current_cost, current_vertices = switch_neighbour(solution, graph)
+            delta = current_cost - cost
 
-        temp = cooling_alg(temp, 1 - cooling_rate, 1 - cooling_rate, i + 1)
+            if delta < 0 or random.random() <= math.exp(- delta / temp):
+                cost = current_cost
+                solution = current_vertices[:]
 
-        if temp == 0:
-            # print(i)
-            return calculate_distance(best_solution, graph), best_solution
-    # print(i)
+                if current_cost < best_cost:
+                    best_cost = current_cost
+                    best_solution = current_vertices
+
+        current_heat = cooling_alg(current_heat, cooling_rate, epoch)
+
     return calculate_distance(best_solution, graph), best_solution
 
 
@@ -214,7 +210,6 @@ def main(ini, initial_type, cooling_algorithm):
             execution_time = (end_time - start_time).microseconds
             cost_ratio = round((calculated_cost / optimal_cost) * 100, 2)
 
-            # assert cost_ratio >= 100, f"Calculated cost better than optimal cost! ({calculated_cost} < {optimal_cost})"
             if cost_ratio < 100:
                 warnings.warn(f"Calculated cost better than optimal cost! ({calculated_cost} < {optimal_cost})")
 
@@ -227,12 +222,13 @@ def main(ini, initial_type, cooling_algorithm):
         output_message += "\n"
         write_output(output, output_message)
 
-        output_message = f"Mean cost: {round(mean_cost / repetitions, 2)}, " \
-                         f"mean ratio: {round(mean_percent / repetitions, 2)}%, " \
+        output_message = f"{graph_name}: " \
+                         f"mean cost: {round(mean_cost / repetitions, 2)}; " \
+                         f"mean ratio: {round(mean_percent / repetitions, 2)}%; " \
                          f"mean execution time: {round(mean_time / repetitions, 2)} us\n"
         write_output(output, output_message)
 
 
 if __name__ == "__main__":
     ini_file_path = ".ini"
-    main(ini_file_path, get_greedy_initial, linear_cooling)
+    main(ini_file_path, get_random_initial, log_cooling)

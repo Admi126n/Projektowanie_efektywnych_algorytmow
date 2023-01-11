@@ -8,7 +8,8 @@ class Ant:
     def __init__(self, n):
         self.cost = 0
         self.path = [0]
-        self.curr_vertex = 0
+        self.curr_i = 0
+        self.curr_j = 0
         self.tabu_list = self.initialize_tabu(n)
 
     @staticmethod
@@ -25,8 +26,9 @@ class Ant:
     def update_tabu_list(self, i, j):
         self.tabu_list[i][j] = 1
 
-    def set_current_vertex(self):
-        pass
+    def set_current_vertex(self, i, j):
+        self.curr_i = i
+        self.curr_j = j
 
 
 class AntColonyOptimisation:
@@ -34,42 +36,46 @@ class AntColonyOptimisation:
 
     def __init__(self, graph, alpha, beta, ro, initial_tau):
         self.graph_size = len(graph)
-        self.ants = self.initialise_ants(self.graph_size)
-        self.pheromone_list = self.initialize_pheromone_list()
         self.alpha = alpha
         self.beta = beta
         self.ro = ro
         self.initial_tau = initial_tau
+        self.ants = self.initialise_ants()
+        self.pheromone_list = self.initialize_pheromone_list()
 
-    @staticmethod
-    def initialise_ants(n):
+    def initialise_ants(self):
         ants = []
-        for _ in range(n):
-            ants.append(Ant(n))
+        for _ in range(self.graph_size):
+            ants.append(Ant(self.graph_size))
         return ants
 
     def initialize_pheromone_list(self):
         pheromone_list = [[self.initial_tau] * self.graph_size for _ in range(self.graph_size)]
         return pheromone_list
 
-    @staticmethod
-    def set_initial_pheromone():
-        pass
+    def cas(self, path_cost):
+        return self.pheromone_value_per_iteration / path_cost
 
-    @staticmethod
-    def cas():
-        pass
+    def das(self):
+        return self.pheromone_value_per_iteration
 
-    @staticmethod
-    def das():
-        pass
+    def qas(self, edge_cost):
+        return self.pheromone_value_per_iteration / edge_cost
 
-    @staticmethod
-    def qas():
-        pass
+    def update_pheromones(self, cost):
+        for i in range(self.graph_size):
+            for j in range(len(self.pheromone_list)):
+                self.pheromone_list[i][j] = self.ro * self.pheromone_list[i][j] + self.qas(cost)
 
-    @staticmethod
-    def ACO():
+                if self.pheromone_list[i][j] < self.initial_tau:
+                    self.pheromone_list[i][j] = self.initial_tau
+
+    def ACO(self):
+        print(f"Before loop: {self.pheromone_list}")
+        for i in range(100):
+            self.update_pheromones(1)
+            print(f"After {i + 1}: {self.pheromone_list}")
+
         calculated_cost = 0
         optimal_path = []
 
@@ -214,7 +220,7 @@ class Main:
         :return:
         """
         cost = 0
-        path = [0]
+        # path = [0]
         vertex = 0
         k = 0
         to_visit = [*range(1, len(graph))]
@@ -224,15 +230,16 @@ class Main:
                 if graph[k][vertex] > graph[k][el]:
                     vertex = el
             cost += graph[k][vertex]
-            path.append(vertex)
+            # path.append(vertex)
             to_visit.remove(vertex)
             k = vertex
         cost += graph[vertex][0]
-        path.append(0)
-        return cost, path
+        # path.append(0)
+        # return cost, path
+        return cost
 
-    @staticmethod
-    def calculate_initial_tau(estimated_cost, vertices_count):
+    def calculate_initial_tau(self, graph, vertices_count):
+        estimated_cost = self.get_greedy_initial(graph)
         return vertices_count / estimated_cost
 
 

@@ -5,11 +5,11 @@ import warnings
 
 
 class Ant:
-    def __init__(self, n):
+    def __init__(self, n, i, j):
         self.cost = 0
         self.path = [0]
-        self.curr_i = 0
-        self.curr_j = 0
+        self.curr_i = i
+        self.curr_j = j
         self.tabu_list = self.initialize_tabu(n)
 
     @staticmethod
@@ -36,6 +36,7 @@ class AntColonyOptimisation:
 
     def __init__(self, graph, alpha, beta, ro, initial_tau):
         self.graph_size = len(graph)
+        self.graph = graph
         self.alpha = alpha
         self.beta = beta
         self.ro = ro
@@ -45,8 +46,9 @@ class AntColonyOptimisation:
 
     def initialise_ants(self):
         ants = []
-        for _ in range(self.graph_size):
-            ants.append(Ant(self.graph_size))
+        for i in range(self.graph_size):
+            for j in range(self.graph_size):
+                ants.append(Ant(self.graph_size, i, j))
         return ants
 
     def initialize_pheromone_list(self):
@@ -70,11 +72,37 @@ class AntColonyOptimisation:
                 if self.pheromone_list[i][j] < self.initial_tau:
                     self.pheromone_list[i][j] = self.initial_tau
 
+    @staticmethod
+    def stop():
+        pass
+
+    def calculate_probability(self, i, j):
+        prob = pow(self.pheromone_list[i][j], self.alpha) * pow(self.graph[i][j], self.beta)
+        return prob
+
+    def choose_next_vertex(self):
+        max_prob = 0
+        best_i = 0
+        best_j = 0
+        prob_sum = 0
+        for i in range(self.graph_size):
+            for j in range(self.graph_size):
+                prob_sum += self.calculate_probability(i, j)
+
+        for i in range(self.graph_size):
+            for j in range(self.graph_size):
+                if self.calculate_probability(i, j) > max_prob:
+                    best_i = i
+                    best_j = j
+                    max_prob = self.calculate_probability(i, j) / prob_sum
+        return [best_i, best_j]
+
     def ACO(self):
-        print(f"Before loop: {self.pheromone_list}")
-        for i in range(100):
-            self.update_pheromones(1)
-            print(f"After {i + 1}: {self.pheromone_list}")
+        for ant in self.ants:
+            for i in range(self.graph_size):
+                for j in range(self.graph_size):
+                    if not ant.tabu_list[i][j]:
+                        pass
 
         calculated_cost = 0
         optimal_path = []

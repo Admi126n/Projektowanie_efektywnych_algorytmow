@@ -5,38 +5,45 @@ import warnings
 
 
 class Ant:
-    def __init__(self, n, i, j):
+    def __init__(self, n, curr):
         self.cost = 0
-        self.path = [0]
-        self.curr_i = i
-        self.curr_j = j
-        self.tabu_list = self.initialize_tabu(n)
+        self.path = [curr]
+        self.start_ver = curr
+        self.curr_ver = curr
+        self.next_ver = 0
+        self.tabu_list = self.initialize_tabu(n, curr)
 
     @staticmethod
-    def initialize_tabu(n):
-        tabu_list = [[0] * n for _ in range(n)]
+    def initialize_tabu(n, curr):
+        tabu_list = [0 * n for _ in range(n)]
+        tabu_list[curr] = 1
         return tabu_list
 
     def update_cost(self, cost):
         self.cost += cost
 
-    def update_path(self, vertex):
-        self.path.append(vertex)
+    def update_path(self):
+        self.path.append(self.next_ver)
 
-    def update_tabu_list(self, i, j):
-        self.tabu_list[i][j] = 1
+    def update_tabu_list(self, ver):
+        self.tabu_list[ver] = 1
 
-    def set_current_vertex(self, i, j):
-        self.curr_i = i
-        self.curr_j = j
+    def set_current_vertex(self, current_ver):
+        self.curr_ver = current_ver
+
+    def set_next_vertex(self, next_ver):
+        self.next_ver = next_ver
 
 
 class AntColonyOptimisation:
+    # pheromone list: two dimensional
+    # tabu list: one dimensional
+    # graph costs: two dimensional
     pheromone_value_per_iteration = 100
 
     def __init__(self, graph, alpha, beta, ro, initial_tau):
         self.graph_size = len(graph)
-        self.graph = graph
+        self.graph_costs = graph
         self.alpha = alpha
         self.beta = beta
         self.ro = ro
@@ -47,8 +54,7 @@ class AntColonyOptimisation:
     def initialise_ants(self):
         ants = []
         for i in range(self.graph_size):
-            for j in range(self.graph_size):
-                ants.append(Ant(self.graph_size, i, j))
+            ants.append(Ant(self.graph_size, i))
         return ants
 
     def initialize_pheromone_list(self):
@@ -64,45 +70,58 @@ class AntColonyOptimisation:
     def qas(self, edge_cost):
         return self.pheromone_value_per_iteration / edge_cost
 
-    def update_pheromones(self, cost):
-        for i in range(self.graph_size):
-            for j in range(len(self.pheromone_list)):
-                self.pheromone_list[i][j] = self.ro * self.pheromone_list[i][j] + self.qas(cost)
+    def update_pheromones(self, cost, path):
+        for i in range(len(path) - 1):
+            self.pheromone_list[path[i]][path[i + 1]] = self.ro * self.pheromone_list[path[i]][path[i + 1]] \
+                                                        + self.qas(cost)
 
-                if self.pheromone_list[i][j] < self.initial_tau:
-                    self.pheromone_list[i][j] = self.initial_tau
+            if self.pheromone_list[path[i]][path[i + 1]] < self.initial_tau:
+                self.pheromone_list[path[i]][path[i + 1]] = self.initial_tau
 
     @staticmethod
     def stop():
         pass
 
-    def calculate_probability(self, i, j):
-        prob = pow(self.pheromone_list[i][j], self.alpha) * pow(self.graph[i][j], self.beta)
+    def calculate_probability(self, curr_vertex, next_vertex):
+        prob = pow(self.pheromone_list[curr_vertex][next_vertex], self.alpha) * \
+               pow(self.graph_costs[curr_vertex][next_vertex], self.beta)
         return prob
 
-    def choose_next_vertex(self):
-        max_prob = 0
-        best_i = 0
-        best_j = 0
-        prob_sum = 0
-        for i in range(self.graph_size):
-            for j in range(self.graph_size):
-                prob_sum += self.calculate_probability(i, j)
+    def choose_next_vertex(self, tabu_list, curr_ver):
+        best_vertex = 0
+        max_pheromone_value = 0
 
-        for i in range(self.graph_size):
-            for j in range(self.graph_size):
-                if self.calculate_probability(i, j) > max_prob:
-                    best_i = i
-                    best_j = j
-                    max_prob = self.calculate_probability(i, j) / prob_sum
-        return [best_i, best_j]
+        for vertex in range(self.graph_size):
+            if not tabu_list[vertex]:
+                temp = self.calculate_probability(curr_ver, vertex)
+                if temp >= max_pheromone_value:
+                    best_vertex = vertex
+
+        return best_vertex
 
     def ACO(self):
-        for ant in self.ants:
-            for i in range(self.graph_size):
-                for j in range(self.graph_size):
-                    if not ant.tabu_list[i][j]:
-                        pass
+        for _ in range(3):
+            for _ in range(self.graph_size - 1):
+                for ant in self.ants:
+                    ant.set_next_vertex(self.choose_next_vertex(ant.tabu_list, ant.curr_ver))
+
+                    ant.update_cost(self.graph_costs[ant.curr_ver][ant.next_ver])
+                    ant.update_path()
+                    ant.update_tabu_list(ant.next_ver)
+                    ant.set_current_vertex(ant.next_ver)
+
+            for i, ant in enumerate(self.ants):
+                ant.update_cost(self.graph_costs[ant.curr_ver][ant.start_ver])
+                ant.set_next_vertex(ant.start_ver)
+                ant.update_path()
+
+                self.update_pheromones(ant.cost, ant.path)
+
+                # print(ant.cost, ant.path)
+            for row in self.pheromone_list:
+                print(row)
+            self.ants = self.initialise_ants()
+            print()
 
         calculated_cost = 0
         optimal_path = []
@@ -258,7 +277,7 @@ class Main:
                 if graph[k][vertex] > graph[k][el]:
                     vertex = el
             cost += graph[k][vertex]
-            # path.append(vertex)
+            # path.append(curr_vertex)
             to_visit.remove(vertex)
             k = vertex
         cost += graph[vertex][0]

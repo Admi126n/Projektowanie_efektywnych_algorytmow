@@ -36,9 +36,6 @@ class Ant:
 
 
 class AntColonyOptimisation:
-    # pheromone list: two dimensional
-    # tabu list: one dimensional
-    # graph costs: two dimensional
     pheromone_value_per_iteration = 100
 
     def __init__(self, graph, alpha, beta, ro, initial_tau):
@@ -72,11 +69,15 @@ class AntColonyOptimisation:
 
     def update_pheromones(self, cost, path):
         for i in range(len(path) - 1):
-            self.pheromone_list[path[i]][path[i + 1]] = self.ro * self.pheromone_list[path[i]][path[i + 1]] \
-                                                        + self.qas(cost)
+            self.pheromone_list[path[i]][path[i + 1]] += self.qas(cost)
 
-            if self.pheromone_list[path[i]][path[i + 1]] < self.initial_tau:
-                self.pheromone_list[path[i]][path[i + 1]] = self.initial_tau
+    def evaporating(self):
+        for i in range(len(self.pheromone_list)):
+            for j in range(len(self.pheromone_list[i])):
+                self.pheromone_list[i][j] = self.ro * self.pheromone_list[i][j]
+
+                if self.pheromone_list[i][j] < self.initial_tau:
+                    self.pheromone_list[i][j] = self.initial_tau
 
     @staticmethod
     def stop():
@@ -84,7 +85,7 @@ class AntColonyOptimisation:
 
     def calculate_probability(self, curr_vertex, next_vertex):
         prob = pow(self.pheromone_list[curr_vertex][next_vertex], self.alpha) * \
-               pow(self.graph_costs[curr_vertex][next_vertex], self.beta)
+               pow(1 / self.graph_costs[curr_vertex][next_vertex], self.beta)
         return prob
 
     def choose_next_vertex(self, tabu_list, curr_ver):
@@ -93,16 +94,17 @@ class AntColonyOptimisation:
 
         for vertex in range(self.graph_size):
             if not tabu_list[vertex]:
-                temp = self.calculate_probability(curr_ver, vertex)
-                if temp >= max_pheromone_value:
+                pheromone_value = self.calculate_probability(curr_ver, vertex)
+                if pheromone_value >= max_pheromone_value:
                     best_vertex = vertex
+                    max_pheromone_value = pheromone_value
 
         return best_vertex
 
     def ACO(self):
-        for _ in range(3):
-            for _ in range(self.graph_size - 1):
-                for ant in self.ants:
+        for k in range(100):
+            for ant in self.ants:
+                for _ in range(self.graph_size - 1):
                     ant.set_next_vertex(self.choose_next_vertex(ant.tabu_list, ant.curr_ver))
 
                     ant.update_cost(self.graph_costs[ant.curr_ver][ant.next_ver])
@@ -116,12 +118,10 @@ class AntColonyOptimisation:
                 ant.update_path()
 
                 self.update_pheromones(ant.cost, ant.path)
+                print(ant.cost, ant.cost / 38673)
 
-                # print(ant.cost, ant.path)
-            for row in self.pheromone_list:
-                print(row)
+            self.evaporating()
             self.ants = self.initialise_ants()
-            print()
 
         calculated_cost = 0
         optimal_path = []

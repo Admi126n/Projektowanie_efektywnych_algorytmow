@@ -1,6 +1,7 @@
 import csv
 import datetime
 import os
+import sys
 import warnings
 
 
@@ -79,11 +80,7 @@ class AntColonyOptimisation:
                 if self.pheromone_list[i][j] < self.initial_tau:
                     self.pheromone_list[i][j] = self.initial_tau
 
-    @staticmethod
-    def stop():
-        pass
-
-    def calculate_probability(self, curr_vertex, next_vertex):
+    def calculate_probability(self, curr_vertex: int, next_vertex: int) -> float:
         prob = pow(self.pheromone_list[curr_vertex][next_vertex], self.alpha) * \
                pow(1 / self.graph_costs[curr_vertex][next_vertex], self.beta)
         return prob
@@ -101,8 +98,11 @@ class AntColonyOptimisation:
 
         return best_vertex
 
-    def ACO(self):
-        for k in range(100):
+    def ACO(self, generations):
+        best_cost = sys.maxsize
+        optimal_path = []
+
+        for k in range(generations):
             for ant in self.ants:
                 for _ in range(self.graph_size - 1):
                     ant.set_next_vertex(self.choose_next_vertex(ant.tabu_list, ant.curr_ver))
@@ -117,16 +117,16 @@ class AntColonyOptimisation:
                 ant.set_next_vertex(ant.start_ver)
                 ant.update_path()
 
+                if best_cost > ant.cost:
+                    best_cost = ant.cost
+                    optimal_path = ant.path
+
                 self.update_pheromones(ant.cost, ant.path)
-                print(ant.cost, ant.cost / 38673)
 
             self.evaporating()
             self.ants = self.initialise_ants()
 
-        calculated_cost = 0
-        optimal_path = []
-
-        return calculated_cost, optimal_path
+        return best_cost, optimal_path
 
 
 class Main:
@@ -145,6 +145,7 @@ class Main:
             alpha = float(graph[3])
             beta = float(graph[4])
             ro = float(graph[5])
+            generations = int(graph[6])
 
             graph_file = self.read_test_data(os.path.join("Test_data", graph_name))
 
@@ -157,7 +158,7 @@ class Main:
                 aco = AntColonyOptimisation(graph_file, alpha, beta, ro, initial_tau)
 
                 start_time = datetime.datetime.now()
-                calculated_cost, optimal_path = aco.ACO()
+                calculated_cost, optimal_path = aco.ACO(generations)
                 end_time = datetime.datetime.now()
 
                 execution_time = (end_time - start_time).microseconds
@@ -267,7 +268,6 @@ class Main:
         :return:
         """
         cost = 0
-        # path = [0]
         vertex = 0
         k = 0
         to_visit = [*range(1, len(graph))]
@@ -277,12 +277,9 @@ class Main:
                 if graph[k][vertex] > graph[k][el]:
                     vertex = el
             cost += graph[k][vertex]
-            # path.append(curr_vertex)
             to_visit.remove(vertex)
             k = vertex
         cost += graph[vertex][0]
-        # path.append(0)
-        # return cost, path
         return cost
 
     def calculate_initial_tau(self, graph, vertices_count):

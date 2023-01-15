@@ -1,32 +1,39 @@
 import csv
 import datetime
 import os
+import sys
 import warnings
 
 
 class Ant:
-    def __init__(self, n):
+    def __init__(self, n, curr):
         self.cost = 0
-        self.path = [0]
-        self.curr_vertex = 0
-        self.tabu_list = self.initialize_tabu(n)
+        self.path = [curr]
+        self.start_ver = curr
+        self.curr_ver = curr
+        self.next_ver = 0
+        self.tabu_list = self.initialize_tabu(n, curr)
 
     @staticmethod
-    def initialize_tabu(n):
-        tabu_list = [[0] * n for _ in range(n)]
+    def initialize_tabu(n, curr):
+        tabu_list = [0 * n for _ in range(n)]
+        tabu_list[curr] = 1
         return tabu_list
 
     def update_cost(self, cost):
         self.cost += cost
 
-    def update_path(self, vertex):
-        self.path.append(vertex)
+    def update_path(self):
+        self.path.append(self.next_ver)
 
-    def update_tabu_list(self, i, j):
-        self.tabu_list[i][j] = 1
+    def update_tabu_list(self, ver):
+        self.tabu_list[ver] = 1
 
-    def set_current_vertex(self):
-        pass
+    def set_current_vertex(self, current_ver):
+        self.curr_ver = current_ver
+
+    def set_next_vertex(self, next_ver):
+        self.next_ver = next_ver
 
 
 class AntColonyOptimisation:
@@ -34,46 +41,92 @@ class AntColonyOptimisation:
 
     def __init__(self, graph, alpha, beta, ro, initial_tau):
         self.graph_size = len(graph)
-        self.ants = self.initialise_ants(self.graph_size)
-        self.pheromone_list = self.initialize_pheromone_list()
+        self.graph_costs = graph
         self.alpha = alpha
         self.beta = beta
         self.ro = ro
         self.initial_tau = initial_tau
+        self.ants = self.initialise_ants()
+        self.pheromone_list = self.initialize_pheromone_list()
 
-    @staticmethod
-    def initialise_ants(n):
+    def initialise_ants(self):
         ants = []
-        for _ in range(n):
-            ants.append(Ant(n))
+        for i in range(self.graph_size):
+            ants.append(Ant(self.graph_size, i))
         return ants
 
     def initialize_pheromone_list(self):
         pheromone_list = [[self.initial_tau] * self.graph_size for _ in range(self.graph_size)]
         return pheromone_list
 
-    @staticmethod
-    def set_initial_pheromone():
-        pass
+    def cas(self, path_cost):
+        return self.pheromone_value_per_iteration / path_cost
 
-    @staticmethod
-    def cas():
-        pass
+    def das(self):
+        return self.pheromone_value_per_iteration
 
-    @staticmethod
-    def das():
-        pass
+    def qas(self, edge_cost):
+        return self.pheromone_value_per_iteration / edge_cost
 
-    @staticmethod
-    def qas():
-        pass
+    def update_pheromones(self, cost, path):
+        for i in range(len(path) - 1):
+            self.pheromone_list[path[i]][path[i + 1]] += self.qas(cost)
 
-    @staticmethod
-    def ACO():
-        calculated_cost = 0
+    def evaporating(self):
+        for i in range(len(self.pheromone_list)):
+            for j in range(len(self.pheromone_list[i])):
+                self.pheromone_list[i][j] = self.ro * self.pheromone_list[i][j]
+
+                if self.pheromone_list[i][j] < self.initial_tau:
+                    self.pheromone_list[i][j] = self.initial_tau
+
+    def calculate_probability(self, curr_vertex: int, next_vertex: int) -> float:
+        prob = pow(self.pheromone_list[curr_vertex][next_vertex], self.alpha) * \
+               pow(1 / self.graph_costs[curr_vertex][next_vertex], self.beta)
+        return prob
+
+    def choose_next_vertex(self, tabu_list, curr_ver):
+        best_vertex = 0
+        max_pheromone_value = 0
+
+        for vertex in range(self.graph_size):
+            if not tabu_list[vertex]:
+                pheromone_value = self.calculate_probability(curr_ver, vertex)
+                if pheromone_value >= max_pheromone_value:
+                    best_vertex = vertex
+                    max_pheromone_value = pheromone_value
+
+        return best_vertex
+
+    def ACO(self, generations):
+        best_cost = sys.maxsize
         optimal_path = []
 
-        return calculated_cost, optimal_path
+        for k in range(generations):
+            for ant in self.ants:
+                for _ in range(self.graph_size - 1):
+                    ant.set_next_vertex(self.choose_next_vertex(ant.tabu_list, ant.curr_ver))
+
+                    ant.update_cost(self.graph_costs[ant.curr_ver][ant.next_ver])
+                    ant.update_path()
+                    ant.update_tabu_list(ant.next_ver)
+                    ant.set_current_vertex(ant.next_ver)
+
+            for i, ant in enumerate(self.ants):
+                ant.update_cost(self.graph_costs[ant.curr_ver][ant.start_ver])
+                ant.set_next_vertex(ant.start_ver)
+                ant.update_path()
+
+                if best_cost > ant.cost:
+                    best_cost = ant.cost
+                    optimal_path = ant.path
+
+                self.update_pheromones(ant.cost, ant.path)
+
+            self.evaporating()
+            self.ants = self.initialise_ants()
+
+        return best_cost, optimal_path
 
 
 class Main:
@@ -92,6 +145,7 @@ class Main:
             alpha = float(graph[3])
             beta = float(graph[4])
             ro = float(graph[5])
+            generations = int(graph[6])
 
             graph_file = self.read_test_data(os.path.join("Test_data", graph_name))
 
@@ -104,7 +158,7 @@ class Main:
                 aco = AntColonyOptimisation(graph_file, alpha, beta, ro, initial_tau)
 
                 start_time = datetime.datetime.now()
-                calculated_cost, optimal_path = aco.ACO()
+                calculated_cost, optimal_path = aco.ACO(generations)
                 end_time = datetime.datetime.now()
 
                 execution_time = (end_time - start_time).microseconds
@@ -214,7 +268,6 @@ class Main:
         :return:
         """
         cost = 0
-        path = [0]
         vertex = 0
         k = 0
         to_visit = [*range(1, len(graph))]
@@ -224,15 +277,13 @@ class Main:
                 if graph[k][vertex] > graph[k][el]:
                     vertex = el
             cost += graph[k][vertex]
-            path.append(vertex)
             to_visit.remove(vertex)
             k = vertex
         cost += graph[vertex][0]
-        path.append(0)
-        return cost, path
+        return cost
 
-    @staticmethod
-    def calculate_initial_tau(estimated_cost, vertices_count):
+    def calculate_initial_tau(self, graph, vertices_count):
+        estimated_cost = self.get_greedy_initial(graph)
         return vertices_count / estimated_cost
 
 

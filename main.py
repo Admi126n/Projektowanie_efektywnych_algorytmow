@@ -161,7 +161,7 @@ class Main:
                 calculated_cost, optimal_path = aco.ACO(generations)
                 end_time = datetime.datetime.now()
 
-                execution_time = (end_time - start_time).microseconds
+                execution_time = (end_time - start_time).total_seconds()
                 error = round((calculated_cost / optimal_cost) * 100 - 100, 2)
 
                 if error < 0:
@@ -178,9 +178,13 @@ class Main:
             self.write_output(output, output_message)
 
             output_message = f"{graph_name}: " \
+                             f"alpha: {alpha}; " \
+                             f"beta: {beta}; " \
+                             f"ro: {ro}; " \
+                             f"generations: {generations}; " \
                              f"mean cost: {round(mean_cost / repetitions, 2)}; " \
                              f"mean error: {round(mean_percent / repetitions, 2)}%; " \
-                             f"mean execution time: {round((mean_time / repetitions) / 1_000_000, 2)} s\n"
+                             f"mean execution time: {round((mean_time / repetitions), 6)} s\n"
             self.write_output(output, output_message)
 
     @staticmethod
